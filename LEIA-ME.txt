@@ -1,0 +1,27 @@
+ATHLETIC CENTER - PROVAS  (versão 1.2.3 – versão para teste)
+=====================================================================
+
+1) TESTAR AGORA NO COMPUTADOR
+   - Descompacte a pasta.
+   - Clique duas vezes em "index.html". O app abre no Chrome ou no Edge.
+   - Tudo funciona: telas, sons, provas, avaliação, PDFs, diploma e Gmail.
+   - Os PDFs gerados vão para a pasta Downloads.
+
+2) INSTALAR NOS COMPUTADORES DOS PROFESSORES (com atualização automática)
+   Para o app ganhar ícone na área de trabalho e se atualizar sozinho,
+   esta pasta precisa ficar hospedada num site (gratuito). Esse passo
+   faremos juntos depois que você aprovar esta versão.
+   Depois de hospedado: o professor abre o link no Chrome/Edge, clica em
+   "Instalar Athletic Center - Provas" na barra de endereço, e pronto.
+
+3) COMO PUBLICAR UMA CORREÇÃO (só você)
+   - Altere o número da versão em "version.js" e em "sw.js" (ex.: 1.2.3).
+   - Envie a pasta atualizada para o mesmo site.
+   - Os professores verão o aviso "Nova versão disponível" com o botão
+     Atualizar. As provas e os resultados salvos não são apagados.
+
+4) ONDE FICAM OS DADOS
+   As provas e as provas em andamento ficam salvas no próprio computador,
+   no Chrome/Edge. Não limpe os "dados de navegação" desse site, senão as
+   edições feitas nas provas se perdem (as provas padrão podem ser
+   restauradas em Editar prova > Restaurar provas padrão).

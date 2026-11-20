@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Athletic Center - Provas</title>
+
+<link rel="icon" type="image/png" href="assets/emblema-64.png?v=103">
+<link rel="shortcut icon" href="assets/emblema.ico?v=103">
+<link rel="apple-touch-icon" href="assets/emblema-192.png">
+<meta name="theme-color" content="#7a0c0c">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Aviso de nova versão -->
+  <div id="update-bar" hidden>
+    <span>Nova versão disponível do Athletic Center - Provas.</span>
+    <button id="update-btn">Atualizar</button>
+  </div>
+
+  <!-- TELA INICIAL -->
+  <section class="screen" id="scr-home">
+    <div class="stage" style="--ar:1672/941">
+      <img src="assets/tela-inicial.jpg" alt="Athletic Center" draggable="false">
+      <button class="hot" data-go="karate" style="left:13.9%;top:33.5%;width:33.9%;height:54.7%" aria-label="Karatê"></button>
+      <button class="hot" data-go="kick" style="left:52.3%;top:33.5%;width:34.4%;height:54.7%" aria-label="Kickboxing"></button>
+    </div>
+  </section>
+
+  <!-- KARATÊ -->
+  <section class="screen" id="scr-karate" hidden>
+    <div class="stage" style="--ar:1672/941">
+      <img src="assets/tela-karate-v6.jpg" alt="" draggable="false">
+      <button class="hot" data-act="add" style="left:6.28%;top:64.29%;width:16.33%;height:31.46%" aria-label="Adicionar prova"></button>
+      <button class="hot" data-act="edit" style="left:24.04%;top:64.29%;width:16.33%;height:31.46%" aria-label="Editar prova"></button>
+      <button class="hot" data-act="run" style="left:41.81%;top:64.29%;width:16.33%;height:31.46%" aria-label="Realizar prova"></button>
+      <button class="hot" data-act="down" style="left:59.57%;top:64.29%;width:16.33%;height:31.46%" aria-label="Baixar prova para o aluno"></button>
+      <button class="hot" data-act="dip" style="left:77.33%;top:64.29%;width:16.33%;height:31.46%" aria-label="Diploma e Certificados"></button>
+    </div>
+  </section>
+
+  <!-- KICKBOXING -->
+  <section class="screen" id="scr-kick" hidden>
+    <div class="stage" style="--ar:1672/941">
+      <img src="assets/tela-kick-v6.jpg" alt="" draggable="false">
+      <button class="hot" data-act="add" style="left:2.87%;top:51.43%;width:17.7%;height:34.01%" aria-label="Adicionar prova"></button>
+      <button class="hot" data-act="edit" style="left:22.01%;top:51.43%;width:17.7%;height:34.01%" aria-label="Editar prova"></button>
+      <button class="hot" data-act="run" style="left:41.15%;top:51.43%;width:17.7%;height:34.01%" aria-label="Realizar prova"></button>
+      <button class="hot" data-act="down" style="left:60.29%;top:51.43%;width:17.7%;height:34.01%" aria-label="Baixar prova para o aluno"></button>
+      <button class="hot" data-act="dip" style="left:79.43%;top:51.43%;width:17.7%;height:34.01%" aria-label="Diploma e Certificados"></button>
+    </div>
+  </section>
+
+  <!-- Botões de canto -->
+  <div id="corner" hidden>
+    <button id="btn-back" class="back" title="Voltar para a tela inicial">
+      <span class="back-ic"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="back-tx">Voltar</span>
+    </button>
+    <button id="btn-receber" class="back receber" title="Abrir os resultados enviados pelos professores no celular (arquivo do WhatsApp)" hidden>
+      <span class="back-ic">📲</span>
+      <span class="back-tx">Receber do celular</span>
+    </button>
+    <input type="file" id="in-receber" accept=".json,application/json" multiple hidden>
+  </div>
+
+  <!-- Camada das mini janelas de prova -->
+  <div id="desk"></div>
+  <div id="taskbar"></div>
+
+  <!-- Janela modal (Adicionar / Editar / Realizar / Diploma) -->
+  <div id="modal" hidden>
+    <div class="modal-box">
+      <header class="modal-head"><h2 id="modal-title"></h2><div class="zoombox"><button id="mz-menos" title="Diminuir zoom (Ctrl + roda do mouse)">−</button><span id="mz-lbl" class="zlbl" title="Voltar a 100%">100%</span><button id="mz-mais" title="Aumentar zoom (Ctrl + roda do mouse)">+</button><button id="mz-max" title="Maximizar / restaurar">☐</button></div><button class="x" id="modal-close" title="Fechar">&#10005;</button></header>
+      <div class="modal-body" id="modal-body"></div>
+      <footer class="modal-foot" id="modal-foot"></footer>
+    </div>
+  </div>
+
+  <div id="cantinho">
+  <button id="gm-btn" class="net gm" title="Dados do Gmail institucional">✉ Gmail institucional</button>
+  <div id="gm-pop" hidden>
+    <div class="gm-head"><b>Gmail institucional – Provas Athletic</b><button id="gm-x" title="Fechar">✕</button></div>
+    <label class="f">Anotações (pode editar quando quiser)<textarea id="gm-txt" rows="5"></textarea></label>
+    <label class="f">Senha
+      <div class="gm-senha"><input id="gm-senha" type="password" autocomplete="off" placeholder="Digite a senha aqui">
+      <button id="gm-ver" class="btn small" title="Mostrar / esconder">👁</button><button id="gm-cop" class="btn small" title="Copiar senha">Copiar</button></div>
+    </label>
+    <div class="gm-info">Fica salvo só neste computador. É salvo automaticamente.</div>
+  </div>
+  <div id="net" class="net verificando" title="Situação da internet (usada para enviar ao Gmail da academia)"><i></i><span>Verificando internet…</span></div>
+  </div>
+  <div id="toast" hidden></div>
+
+  <script src="version.js"></script>
+  <script src="data.js"></script>
+  <script src="config-envio.js"></script>
+  <script src="logo-data.js"></script>
+  <script src="pdf.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
