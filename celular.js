@@ -350,14 +350,23 @@
 
   /* ---------- atualizar provas pelo arquivo do professor chefe ---------- */
   function atualizarProvas() {
-    const inp = h('input', { type: 'file', accept: '.json,application/json,text/plain,*/*' });
+    const inp = h('input', { type: 'file', accept: 'application/pdf,.pdf,.json,application/json' });
     inp.addEventListener('change', async () => {
       const f = inp.files && inp.files[0]; if (!f) return;
       let d;
-      try { d = JSON.parse(await f.text()); } catch (e) { d = null; }
+      try {
+        const buf = new Uint8Array(await f.arrayBuffer());
+        let t = ''; for (let i = 0; i < buf.length; i += 8192) t += String.fromCharCode.apply(null, buf.subarray(i, i + 8192));
+        const a = t.indexOf('ACPROVAS-INICIO'), b = t.indexOf('ACPROVAS-FIM');
+        if (a >= 0 && b > a) {   // PDF de atualização do computador
+          const bin = atob(t.slice(a + 15, b).replace(/\s+/g, ''));
+          const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+          d = JSON.parse(new TextDecoder().decode(u8));
+        } else d = JSON.parse(new TextDecoder().decode(buf));   // arquivo .json antigo
+      } catch (e) { d = null; }
       if (d && d.tipo === 'athletic-prova-celular') { toast('Esse arquivo é de resultados de alunos, não de atualização de provas.'); return; }
       if (!d || d.tipo !== 'athletic-provas-kick' || !Array.isArray(d.provas) || !d.provas.length || !d.provas.every(p => p && p.id && Array.isArray(p.blocos))) {
-        toast('Esse arquivo não é uma atualização de provas. Escolha o arquivo "Atualizacao provas Kick".'); return;
+        toast('Esse arquivo não é uma atualização de provas. Escolha o PDF "Atualizacao provas Kick" que o professor chefe mandou.'); return;
       }
       if (ATUALIZ && ATUALIZ.criado && d.criado && new Date(d.criado) < new Date(ATUALIZ.criado) &&
         !confirm('Esse arquivo é MAIS ANTIGO que as provas que já estão no celular (' + dataHora(ATUALIZ.criado) + ').\n\nUsar mesmo assim?')) return;

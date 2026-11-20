@@ -818,22 +818,64 @@
 
 
   /* ---------- Receber do celular (Kickboxing) ---------- */
+
+  // PDF de atualização: uma página com a lista das provas (para ler) + as provas guardadas
+  // dentro do arquivo (entre ACPROVAS-INICIO e ACPROVAS-FIM), que o app do celular lê.
+  function pdfAtualizacao(dados, kick, agora) {
+    const lat = t => String(t).replace(/[–—]/g, '-').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/[^\x20-\xff]/g, '');
+    const esc = t => lat(t).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+    const u8 = new TextEncoder().encode(JSON.stringify(dados));
+    let bin = ''; for (let i = 0; i < u8.length; i += 8192) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 8192));
+    const b64 = btoa(bin).replace(/(.{76})/g, '$1\n');
+    const L = [];
+    const linha = (t, x, y, f, sz, rgb) => L.push(rgb + ' rg BT /' + f + ' ' + sz + ' Tf ' + x + ' ' + y + ' Td (' + esc(t) + ') Tj ET');
+    L.push('0.70 0.07 0.11 rg 0 772 595 70 re f');
+    linha('Athletic Center', 40, 805, 'F2', 22, '1 1 1');
+    linha('Atualização das provas de Kickboxing para o app do celular', 40, 783, 'F1', 12, '1 1 1');
+    let y = 735;
+    linha('Criado em ' + agora.toLocaleDateString('pt-BR') + ' às ' + agora.toTimeString().slice(0, 5), 40, y, 'F1', 11, '0.35 0.29 0.23'); y -= 30;
+    linha('Provas incluídas (' + kick.length + '):', 40, y, 'F2', 13, '0.48 0.05 0.05'); y -= 22;
+    kick.forEach(p => { linha('\x95  ' + p.titulo + (p.faixa ? '  -  ' + p.faixa : ''), 52, y, 'F1', 12, '0.16 0.10 0.07'); y -= 19; });
+    y -= 20;
+    linha('Como atualizar o celular:', 40, y, 'F2', 13, '0.48 0.05 0.05'); y -= 22;
+    ['1. No WhatsApp, toque neste PDF para baixar.', '2. Abra o app KICK no celular.', '3. Toque em "Atualizar provas" (tela inicial ou menu).',
+     '4. Escolha este PDF e toque em "Atualizar".'].forEach(t => { linha(t, 52, y, 'F1', 12, '0.16 0.10 0.07'); y -= 19; });
+    y -= 20;
+    linha('Não altere este arquivo: as provas estão guardadas dentro dele.', 40, y, 'F1', 10, '0.45 0.40 0.35');
+    const cont = L.join('\n');
+    const objs = [
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
+      '<< /Length ' + cont.length + ' >>\nstream\n' + cont + '\nendstream',
+      (() => { const dd = 'ACPROVAS-INICIO\n' + b64 + '\nACPROVAS-FIM'; return '<< /Length ' + dd.length + ' >>\nstream\n' + dd + '\nendstream'; })()
+    ];
+    let out = '%PDF-1.4\n%\xe2\xe3\xcf\xd3\n'; const offs = [];
+    objs.forEach((o, i) => { offs.push(out.length); out += (i + 1) + ' 0 obj\n' + o + '\nendobj\n'; });
+    const xref = out.length;
+    out += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n' + offs.map(o => String(o).padStart(10, '0') + ' 00000 n \n').join('');
+    out += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF\n';
+    const bytes = new Uint8Array(out.length); for (let i = 0; i < out.length; i++) bytes[i] = out.charCodeAt(i) & 255;
+    return new Blob([bytes], { type: 'application/pdf' });
+  }
   /* ---------- Atualização das provas para o app do celular ---------- */
   $('#btn-atualiz-cel').addEventListener('click', () => {
     const kick = provas.filter(p => p.mod === 'kick');
     if (!kick.length) { toast('Não há provas de Kickboxing para enviar.'); return; }
     const agora = new Date(), dt = agora.toLocaleDateString('pt-BR').replace(/\//g, '-'), hr = agora.toTimeString().slice(0, 5).replace(':', 'h');
     const dados = { tipo: 'athletic-provas-kick', formato: 1, versao: window.APP_VERSAO || '', criado: agora.toISOString(), provas: clone(kick) };
-    const nome = 'Atualizacao provas Kick - ' + dt + ' ' + hr + '.json';
+    const nome = 'Atualizacao provas Kick - ' + dt + ' ' + hr + '.pdf';
     const lista = h('div');
     kick.forEach(p => lista.append(h('div', { class: 'imp-row' }, h('span', null, p.titulo), h('span', { class: 'dup' }, p.faixa || ''))));
     modal('Atualização das provas para o celular', h('div', null,
       h('p', null, 'Vai ser criado um arquivo com as ' + kick.length + ' provas de Kickboxing deste computador, do jeito que estão agora:'),
       lista,
-      h('p', { class: 'hint' }, 'Depois: mande o arquivo no grupo do WhatsApp dos professores. Cada professor baixa o arquivo no WhatsApp, abre o app Prova Kick e toca em "Atualizar provas".')), [
+      h('p', { class: 'hint' }, 'Vai ser criado um PDF. Depois: mande o PDF no grupo do WhatsApp dos professores. Cada professor baixa o arquivo no WhatsApp, abre o app Prova Kick e toca em "Atualizar provas".')), [
       h('button', { class: 'btn', onclick: () => fecharModal() }, 'Cancelar'),
       h('button', { class: 'btn primary', onclick: () => {
-        const blob = new Blob([JSON.stringify(dados)], { type: 'application/json' });
+        const blob = pdfAtualizacao(dados, kick, agora);
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome;
         document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
         fecharModal(true);

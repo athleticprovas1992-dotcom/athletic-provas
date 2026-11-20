@@ -1,6 +1,6 @@
 /* Service worker: deixa o app funcionando sem internet e avisa quando há versão nova.
    Para publicar uma atualização: altere VERSAO (e version.js) e envie os arquivos para o site. */
-const VERSAO = '1.3.5';
+const VERSAO = '1.3.6';
 const CACHE = 'athletic-provas-' + VERSAO;
 const ARQUIVOS = ['./', 'index.html', 'config-envio.js', 'logo-data.js', 'styles.css', 'app.js', 'data.js', 'pdf.js', 'version.js', 'manifest.webmanifest', 'celular.html', 'celular.css', 'celular.js', 'manifest-celular.webmanifest', 'assets/kick-64.png', 'assets/kick-192.png', 'assets/kick-512.png', 'lib/pdfjs-embutido.js',
   'assets/tela-inicial.jpg', 'assets/tela-karate-v6.jpg', 'assets/tela-kick-v6.jpg', 'assets/som-karate.wav', 'assets/som-kick-v3.wav',
