@@ -270,3 +270,5 @@ label.f{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:
 .imp-prof{font-weight:700;color:var(--red-d);margin:12px 0 4px}
 #cel-btns{display:flex;gap:10px;pointer-events:none}
 #cel-btns[hidden]{display:none}
+.status.pa{background:#fff1dc;color:#b45309}
+.imp-row .pa{color:#b45309;font-weight:700}

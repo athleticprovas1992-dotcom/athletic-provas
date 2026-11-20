@@ -142,10 +142,11 @@
     row('NOTA FINAL', nf(d.final), true);
     y += 30;
     need(70);
-    ctx.fillStyle = d.aprovado ? '#1b7a2e' : '#c62828'; ctx.fillRect(M, y, W - 2 * M, 60);
+    const st = d.status || (d.aprovado ? 'ap' : 'rp');
+    ctx.fillStyle = { ap: '#1b7a2e', pend: '#d97706', rp: '#c62828' }[st]; ctx.fillRect(M, y, W - 2 * M, 60);
     ctx.fillStyle = '#fff'; ctx.font = 'bold 28px ' + F; ctx.textAlign = 'center';
-    ctx.fillText(d.aprovado ? 'APROVADO – ' + d.faixa : 'REPROVADO', W / 2, y + 40); ctx.textAlign = 'left'; y += 76;
-    if (!d.aprovado && d.motivo) txt('Motivo: ' + d.motivo, 18, { c: '#c62828', b: true });
+    ctx.fillText(st === 'rp' ? 'REPROVADO' : (st === 'pend' ? 'APROVADO COM PENDÊNCIA – ' : 'APROVADO – ') + d.faixa, W / 2, y + 40); ctx.textAlign = 'left'; y += 76;
+    if (st !== 'ap' && d.motivo) txt((st === 'pend' ? 'Pendência: ' : 'Motivo: ') + d.motivo, 18, { c: st === 'pend' ? '#b45309' : '#c62828', b: true });
     if (d.obs) { y += 10; txt('Observações gerais do professor', 20, { b: true, c: '#7a0c0c' }); txt(d.obs, 18); }
     y += 50; need(90);
     ctx.strokeStyle = '#444'; ctx.beginPath(); ctx.moveTo(W / 2 - 220, y + 40); ctx.lineTo(W / 2 + 220, y + 40); ctx.stroke();

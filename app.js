@@ -57,28 +57,38 @@
       const vals = [];
       if (b.tipo === 'geral') {
         total++; const v = s.av[bi + '-g'];
-        if (!v) pend++; else { vals.push(valor(v, g)); if (v === 'mi' || v === 'in') ruins++; }
+        if (!v) pend++; else { vals.push(v); if (v === 'mi' || v === 'in') ruins++; }
       } else {
         b.linhas.forEach((l, li) => {
           if (l.t !== 'i') return; total++;
           const v = s.av[bi + '-' + li];
-          if (!v) pend++; else { vals.push(valor(v, g)); if (v === 'mi' || v === 'in') ruins++; }
+          if (!v) pend++; else { vals.push(v); if (v === 'mi' || v === 'in') ruins++; }
         });
       }
-      return { nome: b.nome, tipo: b.tipo, nota: vals.length ? r1(vals.reduce((a, c) => a + c, 0) / vals.length) : null, n: vals.length };
+      return { nome: b.nome, tipo: b.tipo, cods: vals, nota: null, n: vals.length };
     });
+    // Regra das notas: abaixo de 85% de Muito insuficiente/Insuficiente, essas notas valem como Suficiente;
+    // a partir de 85%, valem zero (o aluno só recebe o que tirou de Suficiente para cima).
+    const ruimZero = total > 0 && ruins / total >= 0.85;
+    const val = v => (v === 'mi' || v === 'in') ? (ruimZero ? 0 : valor('su', g)) : valor(v, g);
+    blocos.forEach(b => { if (b.cods) { b.nota = b.cods.length ? r1(b.cods.reduce((a, c) => a + val(c), 0) / b.cods.length) : null; b.n = b.cods.length; delete b.cods; } });
     const comNota = blocos.filter(b => b.tipo !== 'req' && b.nota != null);
     const notaProva = comNota.length ? r1(comNota.reduce((a, b) => a + b.nota, 0) / comNota.length) : null;
     const cp = clampPts(s.cursosPts), ep = clampPts(s.extrasPts);
     const pontos = Math.min(10, cp + ep);
     const final = notaProva == null ? null : r1(notaProva + pontos / 10);
     const pctRuim = total ? ruins / total : 0;
-    const reprovNotas = total > 0 && pctRuim >= 0.8;
+    const media = g + 1;                       // valor de Suficiente = média da prova
+    const reprovado = total > 0 && pctRuim >= 0.85 && final != null && final < media;
+    const status = reprovado ? 'rp' : (reqNao.length ? 'pend' : 'ap');
     let motivo = '';
-    if (reprovNotas) motivo = Math.round(pctRuim * 100) + '% das avaliações foram Muito insuficiente ou Insuficiente (limite: 80%).';
+    if (reprovado) motivo = Math.round(pctRuim * 100) + '% das avaliações foram Muito insuficiente ou Insuficiente (limite: 85%). Nesse caso essas notas valem zero e a nota final (' + nf(final) + ') ficou abaixo da média (' + nf(media) + ').';
     if (reqNao.length) motivo = (motivo ? motivo + ' ' : '') + 'Requisito não cumprido: ' + reqNao.join('; ') + '.';
-    return { blocos, notaProva, final, pontos, cp, ep, total, ruins, pend, reqPend, aprovado: !reprovNotas && !reqNao.length, motivo, pctRuim };
+    return { blocos, notaProva, final, pontos, cp, ep, total, ruins, pend, reqPend, aprovado: status === 'ap', status, reqNao, motivo, pctRuim, media };
   }
+  const ROTULO = { ap: 'APROVADO', pend: 'APROVADO COM PENDÊNCIA', rp: 'REPROVADO' }, CURTO = { ap: 'Aprovado', pend: 'Aprovado com pendência', rp: 'Reprovado' };
+  const rotulo = (r, faixa) => ROTULO[r.status] + (r.status !== 'rp' && faixa ? ' – ' + faixa : '');
+  const corSt = r => ({ ap: 'ap', pend: 'pa', rp: 'rp' })[r.status];
   const clampPts = v => { v = parseFloat(String(v || '0').replace(',', '.')); return isNaN(v) ? 0 : Math.max(0, Math.min(10, v)); };
   const txt = html => { const d = document.createElement('div'); d.innerHTML = String(html).replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li)>/gi, '\n'); return d.textContent.replace(/\n{2,}/g, '\n').trim(); };
   const clean = html => { const d = document.createElement('div'); d.innerHTML = html; $$('script,style,iframe,object', d).forEach(e => e.remove()); $$('*', d).forEach(e => [...e.attributes].forEach(a => { if (/^on/i.test(a.name)) e.removeAttribute(a.name); })); return d.innerHTML.trim(); };
@@ -445,12 +455,12 @@
       let st;
       const falta = faltando(s, r);
       if (falta.length) st = h('div', { class: 'status pend' }, 'Falta preencher: ' + falta.join(', ') + '.');
-      else st = h('div', { class: 'status ' + (r.aprovado ? 'ap' : 'rp') }, r.aprovado ? 'APROVADO – ' + (p.faixa || '') : 'REPROVADO');
-      resumoEl.append(h('div', { class: 'res' }, tb, st, !r.aprovado && r.motivo && !falta.length ? h('div', { class: 'warn' }, r.motivo) : null));
+      else st = h('div', { class: 'status ' + corSt(r) }, rotulo(r, p.faixa || ''));
+      resumoEl.append(h('div', { class: 'res' }, tb, st, r.status !== 'ap' && r.motivo && !falta.length ? h('div', { class: 'warn' }, r.motivo) : null));
       const ok = !falta.length;
       [bPdf, bEnv].forEach(b => b.disabled = !ok);
       bDip.disabled = !ok || !r.aprovado;
-      aviso.textContent = !ok ? 'Complete a prova para liberar o PDF, o diploma e o envio.' : (!r.aprovado ? 'O diploma só é gerado para alunos aprovados.' : '');
+      aviso.textContent = !ok ? 'Complete a prova para liberar o PDF, o diploma e o envio.' : (r.status === 'pend' ? 'Aprovado com pendência: o diploma só é gerado quando todos os requisitos forem cumpridos.' : !r.aprovado ? 'O diploma só é gerado para alunos aprovados.' : '');
     }
     atualizar();
     // redimensionar pelas bordas e pelo canto
@@ -508,7 +518,7 @@
         }).concat(b.tipo === 'geral' ? [(() => { const v = NV[s.av[bi + '-g']]; return { t: 'i', geral: true, x: 'Avaliação geral do ' + b.nome, nivel: v && v.n, cor: v && v.c, nota: (s.notas[bi + '-g'] || '').trim() }; })()] : [])
       })),
       notaProva: r.notaProva, cursos: { desc: s.cursosDesc.trim(), pts: r.cp }, extras: { desc: s.extrasDesc.trim(), pts: r.ep },
-      final: r.final, aprovado: r.aprovado, motivo: r.motivo, obs: s.obs.trim()
+      final: r.final, aprovado: r.aprovado, status: r.status, motivo: r.motivo, obs: s.obs.trim()
     };
   }
   function baixar(blob, nome) {
@@ -536,11 +546,11 @@
     toast('Gerando os PDFs…');
     const pdfs = [{ nome: arqResultado(s), blob: await gerarResultado(s) }];
     if (r.aprovado) pdfs.push({ nome: arqDiploma(s), blob: await gerarDiploma(s) });
-    const assunto = 'Prova de ' + aluno + ' – ' + MOD_NOME[p.mod] + ' – ' + (p.faixa || p.titulo) + ' – ' + (r.aprovado ? 'Aprovado' : 'Reprovado');
+    const assunto = 'Prova de ' + aluno + ' – ' + MOD_NOME[p.mod] + ' – ' + (p.faixa || p.titulo) + ' – ' + CURTO[r.status];
     const corpo = ['Resultado de exame de graduação – Athletic Center', '',
       'Aluno: ' + aluno, 'Modalidade: ' + MOD_NOME[p.mod], 'Prova: ' + p.titulo, 'Data: ' + dataBr(s.data), 'Professor: ' + s.professor.trim(), '',
       'Nota da prova: ' + nf(r.notaProva), 'Nota extra: +' + nf(r.pontos / 10), 'Nota final: ' + nf(r.final),
-      'Resultado: ' + (r.aprovado ? 'APROVADO – ' + p.faixa : 'REPROVADO' + (r.motivo ? ' (' + r.motivo + ')' : '')), '',
+      'Resultado: ' + rotulo(r, p.faixa) + (r.status !== 'ap' && r.motivo ? ' (' + r.motivo + ')' : ''), '',
       'Anexos: ' + pdfs.map(x => x.nome).join(' | ')].join('\n');
     if (auto) {
       toast('Enviando e-mail com ' + pdfs.length + (pdfs.length > 1 ? ' PDFs' : ' PDF') + '…');
@@ -856,7 +866,7 @@
         if (!dup) aImportar++;
         wrap.append(h('div', { class: 'imp-row' }, h('span', null, (s.aluno || '(sem nome)') + ' – ' + s.prova.titulo),
           dup ? h('span', { class: 'dup' }, 'já recebido') : falta.length ? h('span', { class: 'pd' }, 'incompleta') :
-            h('span', { class: r.aprovado ? 'ap' : 'rp' }, nf(r.final) + ' • ' + (r.aprovado ? 'Aprovado' : 'Reprovado'))));
+            h('span', { class: corSt(r) }, nf(r.final) + ' • ' + CURTO[r.status])));
       });
     });
     const diferentes = novos.filter(s => { const p = provas.find(x => x.id === s.prova.id); return p && JSON.stringify(p.blocos) !== JSON.stringify(s.prova.blocos); });

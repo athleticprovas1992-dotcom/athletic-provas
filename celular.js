@@ -43,6 +43,9 @@
   const r1 = v => Math.round(v * 10 + 1e-9) / 10;
   const nf = v => v == null || isNaN(v) ? '–' : r1(v).toFixed(1).replace('.', ',');
   const GRUPOS = { 5: '5 a 7', 6: '6 a 8', 7: '7 a 9' };
+  const ROTULO = { ap: 'APROVADO', pend: 'APROVADO COM PENDÊNCIA', rp: 'REPROVADO' }, CURTO = { ap: 'Aprovado', pend: 'Aprovado com pendência', rp: 'Reprovado' };
+  const rotulo = (r, faixa) => ROTULO[r.status] + (r.status !== 'rp' && faixa ? ' – ' + faixa : '');
+  const corSt = r => ({ ap: 'ap', pend: 'pa', rp: 'rp' })[r.status];
   const clampPts = v => { v = parseFloat(String(v || '0').replace(',', '.')); return isNaN(v) ? 0 : Math.max(0, Math.min(10, v)); };
   const txt = html => { const d = document.createElement('div'); d.innerHTML = String(html).replace(/<br\s*\/?>/gi, '\n'); return d.textContent.trim(); };
 
@@ -55,21 +58,28 @@
         return { nome: b.nome, tipo: 'req', nota: null };
       }
       const vals = [];
-      const conta = v => { total++; if (!v) pend++; else { vals.push(valor(v, g)); if (v === 'mi' || v === 'in') ruins++; } };
+      const conta = v => { total++; if (!v) pend++; else { vals.push(v); if (v === 'mi' || v === 'in') ruins++; } };
       if (b.tipo === 'geral') conta(s.av[bi + '-g']);
       else b.linhas.forEach((l, li) => { if (l.t === 'i') conta(s.av[bi + '-' + li]); });
-      return { nome: b.nome, tipo: b.tipo, nota: vals.length ? r1(vals.reduce((a, c) => a + c, 0) / vals.length) : null };
+      return { nome: b.nome, tipo: b.tipo, cods: vals, nota: null };
     });
+    // Regra das notas: abaixo de 85% de Muito insuficiente/Insuficiente, essas notas valem como Suficiente;
+    // a partir de 85%, valem zero (o aluno só recebe o que tirou de Suficiente para cima).
+    const ruimZero = total > 0 && ruins / total >= 0.85;
+    const val = v => (v === 'mi' || v === 'in') ? (ruimZero ? 0 : valor('su', g)) : valor(v, g);
+    blocos.forEach(b => { if (b.cods) { b.nota = b.cods.length ? r1(b.cods.reduce((a, c) => a + val(c), 0) / b.cods.length) : null; b.n = b.cods.length; delete b.cods; } });
     const comNota = blocos.filter(b => b.tipo !== 'req' && b.nota != null);
     const notaProva = comNota.length ? r1(comNota.reduce((a, b) => a + b.nota, 0) / comNota.length) : null;
     const pontos = Math.min(10, clampPts(s.cursosPts) + clampPts(s.extrasPts));
     const final = notaProva == null ? null : r1(notaProva + pontos / 10);
     const pctRuim = total ? ruins / total : 0;
-    const reprovNotas = total > 0 && pctRuim >= 0.8;
+    const media = g + 1;                       // valor de Suficiente = média da prova
+    const reprovado = total > 0 && pctRuim >= 0.85 && final != null && final < media;
+    const status = reprovado ? 'rp' : (reqNao.length ? 'pend' : 'ap');
     let motivo = '';
-    if (reprovNotas) motivo = Math.round(pctRuim * 100) + '% das avaliações foram Muito insuficiente ou Insuficiente (limite: 80%).';
+    if (reprovado) motivo = Math.round(pctRuim * 100) + '% das avaliações foram Muito insuficiente ou Insuficiente (limite: 85%). Nesse caso essas notas valem zero e a nota final (' + nf(final) + ') ficou abaixo da média (' + nf(media) + ').';
     if (reqNao.length) motivo = (motivo ? motivo + ' ' : '') + 'Requisito não cumprido: ' + reqNao.join('; ') + '.';
-    return { blocos, notaProva, final, pontos, pend, reqPend, aprovado: !reprovNotas && !reqNao.length, motivo };
+    return { blocos, notaProva, final, pontos, pend, reqPend, aprovado: status === 'ap', status, reqNao, motivo, media };
   }
   function faltando(s, r) {
     const f = [];
@@ -292,8 +302,8 @@
       tb.append(h('tr', null, h('td', null, 'Nota extra (' + r.pontos + ' pts)'), h('td', null, '+' + nf(r.pontos / 10))));
       tb.append(h('tr', { class: 'fin' }, h('td', null, 'Nota final'), h('td', null, nf(r.final))));
       const st = falta.length ? h('div', { class: 'status pend' }, 'Falta preencher: ' + falta.join(', ') + '.')
-        : h('div', { class: 'status ' + (r.aprovado ? 'ap' : 'rp') }, r.aprovado ? 'APROVADO – ' + (s.prova.faixa || '') : 'REPROVADO');
-      resumo.innerHTML = ''; resumo.append(h('div', { class: 'res' }, tb, st, !r.aprovado && r.motivo && !falta.length ? h('div', { class: 'warn' }, r.motivo) : null));
+        : h('div', { class: 'status ' + corSt(r) }, rotulo(r, s.prova.faixa || ''));
+      resumo.innerHTML = ''; resumo.append(h('div', { class: 'res' }, tb, st, r.status !== 'ap' && r.motivo && !falta.length ? h('div', { class: 'warn' }, r.motivo) : null));
     };
     const campo = (k, ph, type) => h('input', { value: s[k], placeholder: ph, type: type || 'text', inputmode: type === 'number' ? 'decimal' : null,
       oninput: e => { s[k] = e.target.value; salvar(); atualizar(); } });
@@ -374,7 +384,7 @@
       const r = calcular(a), f = faltando(a, r);
       if (!f.length) completos++;
       lista.append(h('div', { class: 'envio-al' }, h('span', null, a.aluno || '(sem nome)'),
-        f.length ? h('span', { class: 'pd' }, 'incompleta') : h('span', { class: r.aprovado ? 'ap' : 'rp' }, nf(r.final) + ' • ' + (r.aprovado ? 'Aprovado' : 'Reprovado'))));
+        f.length ? h('span', { class: 'pd' }, 'incompleta') : h('span', { class: corSt(r) }, nf(r.final) + ' • ' + CURTO[r.status])));
     });
     const inc = turma.alunos.length - completos;
     tela(
