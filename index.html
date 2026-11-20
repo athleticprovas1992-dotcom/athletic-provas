@@ -61,10 +61,16 @@
       <span class="back-ic"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15.5 4.5 8 12l7.5 7.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
       <span class="back-tx">Voltar</span>
     </button>
-    <button id="btn-receber" class="back receber" title="Abrir os resultados enviados pelos professores no celular (arquivo do WhatsApp)" hidden>
-      <span class="back-ic">📲</span>
-      <span class="back-tx">Receber do celular</span>
-    </button>
+    <div id="cel-btns" hidden>
+      <button id="btn-atualiz-cel" class="back receber" title="Criar o arquivo com as provas do Kickboxing deste computador para atualizar os celulares dos professores">
+        <span class="back-ic">🔄</span>
+        <span class="back-tx">Atualização para celular</span>
+      </button>
+      <button id="btn-receber" class="back receber" title="Abrir os resultados enviados pelos professores no celular (arquivo do WhatsApp)">
+        <span class="back-ic">📲</span>
+        <span class="back-tx">Receber do celular</span>
+      </button>
+    </div>
     <input type="file" id="in-receber" accept=".json,application/json" multiple hidden>
   </div>
 

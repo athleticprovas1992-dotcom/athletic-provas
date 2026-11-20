@@ -82,7 +82,15 @@
   }
 
   /* ---------- provas do Kickboxing ---------- */
-  const PROVAS = (window.PROVAS_PADRAO || []).filter(p => p.mod === 'kick');
+  // Provas: as do arquivo de atualização do professor chefe (se houver) ou as que vêm com o app.
+  const PADRAO = (window.PROVAS_PADRAO || []).filter(p => p.mod === 'kick');
+  let ATUALIZ = null, PROVAS = PADRAO;
+  function carregarProvas() {
+    ATUALIZ = store.get('provasAtualiz', null);
+    PROVAS = ATUALIZ && Array.isArray(ATUALIZ.provas) && ATUALIZ.provas.length ? ATUALIZ.provas : PADRAO;
+  }
+  carregarProvas();
+  const dataHora = iso => { try { const d = new Date(iso); return d.toLocaleDateString('pt-BR') + ' às ' + d.toTimeString().slice(0, 5); } catch (e) { return ''; } };
 
   // Transforma a prova numa sequência de passos (uma técnica por tela).
   function passosDe(p) {
@@ -129,6 +137,8 @@
       lista.append(c);
     });
     tela(
+      h('div', { class: 'pinfo' }, ATUALIZ ? 'Provas atualizadas pelo professor chefe em ' + dataHora(ATUALIZ.criado) + '.' : 'Provas originais do app.',
+        h('button', { class: 'btn small', style: 'display:block;margin-top:8px', onclick: atualizarProvas }, '🔄 Atualizar provas')),
       h('h2', null, 'Nova prova'),
       h('label', { class: 'f' }, 'Professor', prof),
       h('label', { class: 'f' }, 'Data da prova', data),
@@ -320,12 +330,41 @@
       h('button', { class: 'btn full', onclick: () => { fecharFolha(); telaAlunos(false); } }, 'Alunos: acrescentar, corrigir nome ou remover'),
       h('button', { class: 'btn full', onclick: () => { fecharFolha(); listaTecnicas(); } }, 'Lista de técnicas'),
       h('button', { class: 'btn wa full', onclick: () => { fecharFolha(); telaEnviar(); } }, 'Enviar resultados pelo WhatsApp'),
+      h('button', { class: 'btn full', onclick: () => { fecharFolha(); atualizarProvas(); } }, '🔄 Atualizar provas (arquivo do professor chefe)'),
       h('button', { class: 'btn danger full', onclick: () => {
         if (!confirm('Apagar esta prova e todos os alunos dela do celular?\n\nFaça isso só depois de enviar os resultados.')) return;
         turma = null; salvar(); fecharFolha(); telaInicio();
       } }, 'Começar outra prova (apaga esta)'),
       h('p', { class: 'hint', style: 'text-align:center' }, 'Versão ' + (window.APP_VERSAO || '')));
   });
+
+  /* ---------- atualizar provas pelo arquivo do professor chefe ---------- */
+  function atualizarProvas() {
+    const inp = h('input', { type: 'file', accept: '.json,application/json,text/plain,*/*' });
+    inp.addEventListener('change', async () => {
+      const f = inp.files && inp.files[0]; if (!f) return;
+      let d;
+      try { d = JSON.parse(await f.text()); } catch (e) { d = null; }
+      if (d && d.tipo === 'athletic-prova-celular') { toast('Esse arquivo é de resultados de alunos, não de atualização de provas.'); return; }
+      if (!d || d.tipo !== 'athletic-provas-kick' || !Array.isArray(d.provas) || !d.provas.length || !d.provas.every(p => p && p.id && Array.isArray(p.blocos))) {
+        toast('Esse arquivo não é uma atualização de provas. Escolha o arquivo "Atualizacao provas Kick".'); return;
+      }
+      if (ATUALIZ && ATUALIZ.criado && d.criado && new Date(d.criado) < new Date(ATUALIZ.criado) &&
+        !confirm('Esse arquivo é MAIS ANTIGO que as provas que já estão no celular (' + dataHora(ATUALIZ.criado) + ').\n\nUsar mesmo assim?')) return;
+      const lista = h('div');
+      d.provas.forEach(p => lista.append(h('div', { class: 'envio-al' }, h('span', null, p.titulo), h('span', { class: 'pd' }, p.faixa || ''))));
+      folha(h('h3', null, 'Atualizar provas'),
+        h('p', null, 'Arquivo criado em ' + dataHora(d.criado) + ', com ' + d.provas.length + ' provas:'), lista,
+        turma ? h('p', { class: 'warn' }, 'A prova que você está aplicando agora continua igual. As provas novas valem a partir da próxima prova.') : null,
+        h('button', { class: 'btn primary full', onclick: () => {
+          store.set('provasAtualiz', { criado: d.criado || new Date().toISOString(), versao: d.versao || '', provas: d.provas });
+          carregarProvas(); fecharFolha(); toast('Provas atualizadas!');
+          if (!turma) telaInicio();
+        } }, 'Atualizar'),
+        h('button', { class: 'btn full', onclick: fecharFolha }, 'Cancelar'));
+    });
+    inp.click();
+  }
 
   /* ---------- 4. enviar ---------- */
   function telaEnviar() {

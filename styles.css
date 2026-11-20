@@ -268,3 +268,5 @@ label.f{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:
 .imp-row{display:flex;justify-content:space-between;gap:10px;padding:8px 4px;border-bottom:1px dotted var(--line);font-size:14.5px}
 .imp-row .ap{color:var(--ok);font-weight:700}.imp-row .rp{color:var(--bad);font-weight:700}.imp-row .pd{color:#8a5a00}.imp-row .dup{color:var(--muted)}
 .imp-prof{font-weight:700;color:var(--red-d);margin:12px 0 4px}
+#cel-btns{display:flex;gap:10px;pointer-events:none}
+#cel-btns[hidden]{display:none}

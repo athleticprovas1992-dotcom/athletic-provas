@@ -89,7 +89,7 @@
     ['home', 'karate', 'kick'].forEach(t => $('#scr-' + t).hidden = t !== tela);
     modAtual = tela === 'home' ? null : tela;
     $('#corner').hidden = tela === 'home';
-    $('#btn-receber').hidden = tela !== 'kick';
+    $('#cel-btns').hidden = tela !== 'kick';
     renderJanelas();
   }
   const sons = { karate: new Audio('assets/som-karate.wav'), kick: new Audio('assets/som-kick-v3.wav') };
@@ -808,6 +808,28 @@
 
 
   /* ---------- Receber do celular (Kickboxing) ---------- */
+  /* ---------- Atualização das provas para o app do celular ---------- */
+  $('#btn-atualiz-cel').addEventListener('click', () => {
+    const kick = provas.filter(p => p.mod === 'kick');
+    if (!kick.length) { toast('Não há provas de Kickboxing para enviar.'); return; }
+    const agora = new Date(), dt = agora.toLocaleDateString('pt-BR').replace(/\//g, '-'), hr = agora.toTimeString().slice(0, 5).replace(':', 'h');
+    const dados = { tipo: 'athletic-provas-kick', formato: 1, versao: window.APP_VERSAO || '', criado: agora.toISOString(), provas: clone(kick) };
+    const nome = 'Atualizacao provas Kick - ' + dt + ' ' + hr + '.json';
+    const lista = h('div');
+    kick.forEach(p => lista.append(h('div', { class: 'imp-row' }, h('span', null, p.titulo), h('span', { class: 'dup' }, p.faixa || ''))));
+    modal('Atualização das provas para o celular', h('div', null,
+      h('p', null, 'Vai ser criado um arquivo com as ' + kick.length + ' provas de Kickboxing deste computador, do jeito que estão agora:'),
+      lista,
+      h('p', { class: 'hint' }, 'Depois: mande o arquivo no grupo do WhatsApp dos professores. Cada professor baixa o arquivo no WhatsApp, abre o app Prova Kick e toca em "Atualizar provas".')), [
+      h('button', { class: 'btn', onclick: () => fecharModal() }, 'Cancelar'),
+      h('button', { class: 'btn primary', onclick: () => {
+        const blob = new Blob([JSON.stringify(dados)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome;
+        document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        fecharModal(true);
+        toast('Arquivo "' + nome + '" salvo na pasta Downloads. Mande no grupo do WhatsApp.');
+      } }, 'Criar arquivo')]);
+  });
   $('#btn-receber').addEventListener('click', () => { $('#in-receber').value = ''; $('#in-receber').click(); });
   $('#in-receber').addEventListener('change', async e => {
     const arqs = Array.from(e.target.files || []);
